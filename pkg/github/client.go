@@ -39,6 +39,14 @@ func NewClient(token string) *Client {
 	return &Client{github.NewClient(oc)}
 }
 
+type RepositoryService interface {
+	ForkRepository(ctx context.Context, repoName string) error
+	RenameRepository(ctx context.Context, owner, name, newName string) error
+	GetRepository(ctx context.Context, owner, repoName string) (*github.Repository, error)
+	ListRepositoryForks(ctx context.Context, repoName string) ([]*forkInfo, error)
+	GetUserRepositoryFork(ctx context.Context, repoName string) (*forkInfo, error)
+}
+
 // Client is a github.Client wrapper
 type Client struct {
 	*github.Client
