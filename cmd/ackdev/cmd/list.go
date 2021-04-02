@@ -22,8 +22,9 @@ var (
 func init() {
 	listCmd.AddCommand(listDependenciesCmd)
 	listCmd.AddCommand(getConfigCmd)
+	listCmd.AddCommand(listRepositoriesCmd)
 
-	getConfigCmd.PersistentFlags().StringVarP(&optListOutputFormat, "output", "o", "yaml", "output format (json|yaml)")
+	getConfigCmd.PersistentFlags().StringVarP(&optListOutputFormat, "output", "o", "", "output format (json|yaml)")
 }
 
 var listCmd = &cobra.Command{

@@ -21,7 +21,7 @@ import (
 	gitssh "gopkg.in/src-d/go-git.v4/plumbing/transport/ssh"
 )
 
-var _ OpenCloner = &Git{}
+var _ OpenCloner = (*Git)(nil)
 
 const (
 	defaultUser = "git"
