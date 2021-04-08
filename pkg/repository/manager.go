@@ -90,7 +90,9 @@ func (m *Manager) LoadRepository(name string, t RepositoryType) (*Repository, er
 	var gitHead string
 
 	gitRepo, err = m.git.Open(fullPath)
-	if err == nil {
+	if err != nil && err != git.ErrRepositoryNotExists {
+		return nil, err
+	} else if err == nil {
 		head, err := gitRepo.Head()
 		if err != nil {
 			return nil, err
@@ -129,16 +131,6 @@ func (m *Manager) LoadAll() error {
 	return nil
 }
 
-// HasRepo return true if repoName is known
-func (m *Manager) hasRepo(repoName string) bool {
-	for _, repo := range m.repoCache {
-		if repo.Name == repoName {
-			return true
-		}
-	}
-	return false
-}
-
 // GetRepository return a known repository
 func (m *Manager) GetRepository(repoName string) (*Repository, error) {
 	for _, repo := range m.repoCache {
@@ -149,12 +141,12 @@ func (m *Manager) GetRepository(repoName string) (*Repository, error) {
 	return nil, ErrRepositoryDoesntExist
 }
 
-// List returns a list of filtered repositories
+// List lists all the cached repositories. Alias of ListAnd().
 func (m *Manager) List(filters ...Filter) []*Repository {
 	return m.ListAnd(filters...)
 }
 
-// List returns a list of filtered repositories
+// List lists all the cached repositories
 func (m *Manager) ListAnd(filters ...Filter) []*Repository {
 	repos := []*Repository{}
 mainLoop:
@@ -169,7 +161,7 @@ mainLoop:
 	return repos
 }
 
-// List returns a list of filtered repositories
+// List lists all the cache repositories
 func (m *Manager) ListOr(filters ...Filter) []*Repository {
 	repos := []*Repository{}
 mainLoop:
@@ -220,13 +212,15 @@ func (m *Manager) clone(repoName string) error {
 }
 
 // ensureFork ensures that your github account have a fork for a given
-// project. It will also rename the project if it's not following the
+// ACK project. It will also rename the project if it's not following the
 // standard: $ackprefix-$projectname
 func (m *Manager) ensureFork(repo *Repository) error {
 	m.log.SetLevel(logrus.DebugLevel)
 
+	// TODO(hilalymh) maybe we should propagate the context from the cobra commands
 	ctx := context.TODO()
 	expectedForkName := fmt.Sprintf("%s%s", m.cfg.Github.ForkPrefix, repo.Name)
+
 	fork, err := m.ghc.GetUserRepositoryFork(ctx, repo.Name)
 	if err == nil {
 		if *fork.Name != expectedForkName {
@@ -261,7 +255,27 @@ func (m *Manager) ensureClone(repo *Repository) error {
 	return nil
 }
 
-// EnsureAll ensures all repositories
+// EnsureAll ensures one repository.
+func (m *Manager) EnsureRepository(name string) error {
+	repo, err := m.GetRepository(name)
+	if err != nil {
+		return err
+	}
+
+	err = m.ensureFork(repo)
+	if err != nil {
+		return err
+	}
+
+	err = m.ensureClone(repo)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// EnsureAll ensures all cached repositories.
 func (m *Manager) EnsureAll() error {
 	for _, repo := range m.repoCache {
 		err := m.ensureFork(repo)

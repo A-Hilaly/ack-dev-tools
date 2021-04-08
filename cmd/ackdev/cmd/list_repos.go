@@ -32,7 +32,7 @@ var listRepositoriesCmd = &cobra.Command{
 }
 
 func printRepositories(cmd *cobra.Command, args []string) error {
-	filters, err := repository.NewFiltersFromExpression(optListFilterExpression)
+	filters, err := repository.BuildFilters(optListFilterExpression)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func listRepositories(filters ...repository.Filter) ([]*repository.Repository, e
 	if err != nil {
 		return nil, err
 	}
-	repoManager, err := repository.NewManager(cfg, repository.WithSigner(cfg.Git.SSHKeyPath))
+	repoManager, err := repository.NewManager(cfg)
 	if err != nil {
 		return nil, err
 	}

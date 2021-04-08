@@ -7,22 +7,25 @@ import (
 )
 
 var (
-	ErrorMalformatedFilterExpression error = errors.New("malformated filter expression")
+	ErrMalformatedFilterExpression error = errors.New("malformated filter expression")
+	ErrUnknownFilterKey            error = errors.New("unknown filter key")
 )
 
-// NewFiltersFromExpression takes an expression string and returns a list
+// BuildFilters takes an expression string and returns a list
 // of Filter functions. Example: "branch=main type=controller"
-func NewFiltersFromExpression(expression string) ([]Filter, error) {
-	if expression == "" {
+func BuildFilters(expression string) ([]Filter, error) {
+	expression = strings.TrimSpace(expression)
+	if len(expression) == 0 {
 		return nil, nil
 	}
-	expressionElements := strings.Split(expression, " ")
-	filters := []Filter{}
 
+	var filters []Filter
+	expressionElements := strings.Split(expression, " ")
 	for _, filterStr := range expressionElements {
+		// TODO(hilalymh) probably we could use a regular expression instead..
 		filterArgs := strings.Split(filterStr, "=")
 		if len(filterArgs) != 2 {
-			return nil, fmt.Errorf("malformatted filter expression")
+			return nil, ErrMalformatedFilterExpression
 		}
 		key := strings.ToLower(filterArgs[0])
 		value := filterArgs[1]
@@ -34,28 +37,28 @@ func NewFiltersFromExpression(expression string) ([]Filter, error) {
 		case "branch":
 			filters = append(filters, BranchFilter(value))
 		default:
-			return nil, fmt.Errorf("unknown filter key %s", key)
+			return nil, fmt.Errorf("unknown filter key: %s", key)
 		}
 	}
 	return filters, nil
 }
 
-// Filter is a function that filtrate a single repository
+// A Filter is a prototype for a function that can be used to filter the
+// results from a call to the List() method on the Manager.
 type Filter func(r *Repository) bool
 
-// NoFilter always return true
-func NoFilter() Filter {
-	return func(r *Repository) bool { return true }
-}
+// NoFilter will not filter out any repository.
+func NoFilter(r *Repository) bool { return true }
 
-// NameFilter filters a repository by a exact name
+// NameFilter filters all repositories whose names matches the specified name
 func NameFilter(name string) Filter {
 	return func(r *Repository) bool {
 		return r.Name == name
 	}
 }
 
-// NamePrefixFilter filters a repository by a exact name
+// NamePrefixFilter filters all repositories whose name prefix matches the
+// the given namePrefix
 func NamePrefixFilter(namePrefix string) Filter {
 	return func(r *Repository) bool {
 		return strings.HasPrefix(r.Name, namePrefix)
@@ -66,11 +69,12 @@ func NamePrefixFilter(namePrefix string) Filter {
 // The only two possible types are 'controller' and 'core'
 func TypeFilter(t string) Filter {
 	return func(r *Repository) bool {
-		return r.Type.String() == t
+		return r.Type == repositoryTypeFromString(t)
 	}
 }
 
-// BranchFilter filters a repository by the current branch name
+// BranchFilter filters all repositories whose current branch matches the
+// given branch name.
 func BranchFilter(branch string) Filter {
 	return func(r *Repository) bool {
 		return r.GitHead == branch
