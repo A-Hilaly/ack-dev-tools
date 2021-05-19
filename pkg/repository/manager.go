@@ -110,9 +110,12 @@ func (m *Manager) LoadRepository(name string, t RepositoryType) (*Repository, er
 	}
 
 	repoName := name
+	fmt.Println("swapinggg", repoName)
 	// controller repositories should always have a '-controller' suffix
 	if t == RepositoryTypeController {
 		repoName = fmt.Sprintf("%s-controller", name)
+		fmt.Println("swapped", repoName)
+
 	}
 
 	// set expected fork name
@@ -147,7 +150,7 @@ func (m *Manager) LoadRepository(name string, t RepositoryType) (*Repository, er
 	}
 
 	// cache repository
-	m.repoCache[name] = repo
+	m.repoCache[repo.Name] = repo
 	return repo, nil
 }
 
@@ -213,7 +216,7 @@ func (m *Manager) clone(ctx context.Context, repoName string) error {
 	err = m.git.Clone(
 		ctx,
 		m.urlBuilder(m.cfg.Github.Username, repo.ExpectedForkName),
-		repo.ExpectedForkName,
+		repo.FullPath,
 	)
 	if errors.Is(err, transport.ErrAuthenticationRequired) {
 		return ErrUnauthenticated
@@ -251,7 +254,7 @@ func (m *Manager) clone(ctx context.Context, repoName string) error {
 func (m *Manager) EnsureFork(ctx context.Context, repo *Repository) error {
 	// TODO(hilaly): m.log.SetLevel(logrus.DebugLevel)
 
-	fork, err := m.ghc.GetUserRepositoryFork(ctx, repo.Name)
+	fork, err := m.ghc.GetUserRepositoryFork(ctx, m.cfg.Github.Username, repo.Name)
 	if err == nil {
 		if *fork.Name != repo.ExpectedForkName {
 			err = m.ghc.RenameRepository(ctx, m.cfg.Github.Username, *fork.Name, repo.ExpectedForkName)
@@ -289,14 +292,16 @@ func (m *Manager) EnsureClone(ctx context.Context, repo *Repository) error {
 	// At this point we ensured that the fork repository is cloned. We need to rename it
 	// if there is any fork prefix.
 	if repo.Name != repo.ExpectedForkName {
-
 		newPath := filepath.Join(
 			filepath.Dir(repo.FullPath),
 			repo.Name,
 		)
-		err := renameDirectory(repo.FullPath, newPath)
-		if err != nil {
-			return err
+		if newPath != repo.FullPath {
+			err := renameDirectory(repo.FullPath, newPath)
+			if err != nil {
+				return err
+			}
+			repo.FullPath = newPath
 		}
 	}
 
@@ -325,16 +330,23 @@ func (m *Manager) EnsureRepository(ctx context.Context, name string) error {
 
 // EnsureAll ensures all cached repositories.
 func (m *Manager) EnsureAll(ctx context.Context) error {
+	fmt.Println(len(m.repoCache))
+	for k := range m.repoCache {
+		fmt.Println("--", k)
+	}
 	for _, repo := range m.repoCache {
+		fmt.Println("dealing with", repo.Name)
 		err := m.EnsureFork(ctx, repo)
 		if err != nil {
 			return err
 		}
+		fmt.Println("forked", repo.Name, repo.FullPath)
 
 		err = m.EnsureClone(ctx, repo)
 		if err != nil {
 			return err
 		}
+		fmt.Println("cloned", repo.Name, repo.FullPath)
 	}
 	return nil
 }

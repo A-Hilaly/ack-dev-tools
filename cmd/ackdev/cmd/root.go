@@ -28,6 +28,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&ackConfigPath, "config-file", defaultConfigPath, "ackdev configuration file path")
 
 	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(ensureCmd)
 	rootCmd.AddCommand(editCmd)
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(setupCmd)

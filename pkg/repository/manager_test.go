@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"testing"
 
-	gogithub "github.com/google/go-github/v33/github"
+	gogithub "github.com/google/go-github/v35/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/src-d/go-git.v4"
@@ -329,7 +329,7 @@ func TestManager_EnsureFork(t *testing.T) {
 		"GetUserRepositoryFork",
 		testingCtx,
 		"s3-controller",
-	).Return(nil, github.ErrorForkNotFound)
+	).Return(nil, github.ErrForkNotFound)
 	fakeGithubClient.On(
 		"ForkRepository",
 		testingCtx,
@@ -355,7 +355,7 @@ func TestManager_EnsureFork(t *testing.T) {
 		"GetUserRepositoryFork",
 		testingCtx,
 		"ecr-controller",
-	).Return(nil, github.ErrorForkNotFound)
+	).Return(nil, github.ErrForkNotFound)
 	fakeGithubClient.On(
 		"ForkRepository",
 		testingCtx,
