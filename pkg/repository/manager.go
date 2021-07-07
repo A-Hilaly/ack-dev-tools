@@ -147,6 +147,7 @@ func (m *Manager) LoadRepository(name string, t RepositoryType) (*Repository, er
 	}
 
 	// cache repository
+	fmt.Println("====> caching", repo.Name)
 	m.repoCache[name] = repo
 	return repo, nil
 }
@@ -156,12 +157,14 @@ func (m *Manager) LoadRepository(name string, t RepositoryType) (*Repository, er
 func (m *Manager) LoadAll() error {
 	// collect repositories from config
 	for _, coreRepo := range m.cfg.Repositories.Core {
+		fmt.Println("=>    loading core repo", coreRepo)
 		_, err := m.LoadRepository(coreRepo, RepositoryTypeCore)
 		if err != nil {
 			return err
 		}
 	}
 	for _, serviceName := range m.cfg.Repositories.Services {
+		fmt.Println("=>    loading service repo", serviceName)
 		_, err := m.LoadRepository(serviceName, RepositoryTypeController)
 		if err != nil {
 			return err
@@ -213,7 +216,7 @@ func (m *Manager) clone(ctx context.Context, repoName string) error {
 	err = m.git.Clone(
 		ctx,
 		m.urlBuilder(m.cfg.Github.Username, repo.ExpectedForkName),
-		repo.ExpectedForkName,
+		repo.FullPath,
 	)
 	if errors.Is(err, transport.ErrAuthenticationRequired) {
 		return ErrUnauthenticated
