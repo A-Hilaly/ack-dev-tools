@@ -262,7 +262,7 @@ func (m *Manager) EnsureFork(ctx context.Context, repo *Repository) error {
 				return err
 			}
 		}
-	} else if err == github.ErrorForkNotFound {
+	} else if err == github.ErrForkNotFound {
 		err = m.ghc.ForkRepository(ctx, repo.Name)
 		if err != nil {
 			return err
